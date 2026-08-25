@@ -22,6 +22,18 @@
   async function shareReceiptPDF(a,c){
     const name=`recibo-${(c?.nome||'cliente').toLowerCase().replace(/[^a-z0-9]+/gi,'-')}.pdf`,blob=await (await buildReceiptPDF(a,c)).output('blob'),file=new File([blob],name,{type:'application/pdf'});
     const text=`Recibo de pagamento - ${empresa?.nome_fantasia||empresa?.nome||'Barbearia'}\nCliente: ${c?.nome||'Cliente avulso'}\nValor: ${money(a?.valor)}\nObrigado pela preferência!`;
+    const isWindowsDesktop=/Windows/i.test(navigator.userAgent)&&!(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    if(isWindowsDesktop){
+      const whatsappWindow=window.open('https://web.whatsapp.com/','_blank');
+      const url=URL.createObjectURL(blob),aEl=document.createElement('a');aEl.href=url;aEl.download=name;document.body.appendChild(aEl);aEl.click();aEl.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+      if(c?.telefone){
+        const phone=String(c.telefone).replace(/\D/g,'');
+        const waUrl=phone?`https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`:'https://web.whatsapp.com/';
+        if(whatsappWindow&&!whatsappWindow.closed){try{whatsappWindow.location.href=waUrl;}catch(e){}}
+        else window.open(waUrl,'_blank');
+      }
+      return;
+    }
     if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'Recibo de pagamento',text,files:[file]});return;}
     const url=URL.createObjectURL(blob),aEl=document.createElement('a');aEl.href=url;aEl.download=name;aEl.click();setTimeout(()=>URL.revokeObjectURL(url),3000);if(c?.telefone)wa(c.telefone,`${text}\n\nO PDF foi baixado. Anexe o arquivo nesta conversa do WhatsApp.`);
   }
