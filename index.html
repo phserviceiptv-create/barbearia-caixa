@@ -22,50 +22,81 @@
   </div>
 
   <div id="setupView" class="center hidden">
-    <div class="card auth-card">
+    <div class="card auth-card wide-card">
       <div class="brand">✂️ <span>Primeiro acesso</span></div>
       <h2>Cadastre sua barbearia</h2>
-      <input id="empresaNome" placeholder="Nome da barbearia">
-      <input id="empresaTelefone" placeholder="WhatsApp da barbearia">
-      <button id="setupBtn">Começar</button>
+      <p class="muted">Esses dados também ficam disponíveis na Retaguarda para edição.</p>
+      <div class="grid2">
+        <input id="empresaNome" placeholder="Nome completo *">
+        <input id="empresaFantasia" placeholder="Nome fantasia">
+        <input id="empresaCnpj" placeholder="CNPJ">
+        <input id="empresaTelefone" placeholder="Telefone">
+        <input id="empresaWhatsapp" placeholder="WhatsApp">
+        <input id="empresaEmail" placeholder="E-mail">
+        <input id="empresaInstagram" placeholder="Instagram">
+        <input id="empresaEndereco" placeholder="Endereço">
+        <input id="empresaCidade" placeholder="Cidade">
+        <input id="empresaEstado" placeholder="Estado / UF">
+        <input id="empresaCep" placeholder="CEP">
+      </div>
+      <textarea id="empresaDescricao" placeholder="Descrição da barbearia"></textarea>
+      <button id="setupBtn">Criar barbearia</button>
       <div id="setupMsg" class="msg"></div>
     </div>
   </div>
 
   <div id="appView" class="hidden">
     <header>
-      <div class="brand">✂️ <span id="appTitle">Barbearia Caixa</span></div>
+      <div class="brand">
+        <img id="appLogo" class="header-logo hidden" alt="Logo">
+        <span id="appScissors">✂️</span>
+        <span id="appTitle">Barbearia Caixa</span>
+      </div>
       <button id="logoutBtn" class="ghost">Sair</button>
     </header>
+
     <nav>
       <button class="tab active" data-tab="dashboard">Caixa</button>
       <button class="tab" data-tab="clientes">Clientes</button>
       <button class="tab" data-tab="atendimento">Atendimento</button>
       <button class="tab" data-tab="historico">Histórico</button>
+      <button class="tab" data-tab="retaguarda">Retaguarda</button>
     </nav>
 
     <main>
       <section id="dashboard" class="panel active">
-        <div class="topline"><div><h2>Caixa</h2><p class="muted">Movimentações da barbearia</p></div><button id="novaMovBtn">+ Movimentação</button></div>
+        <div class="topline">
+          <div><h2>Caixa</h2><p class="muted">Movimentações da barbearia</p></div>
+          <button id="novaMovBtn">+ Movimentação</button>
+        </div>
         <div class="stats">
           <div class="stat"><span>Entradas</span><strong id="totalEntradas">R$ 0,00</strong></div>
           <div class="stat"><span>Saídas</span><strong id="totalSaidas">R$ 0,00</strong></div>
           <div class="stat"><span>Saldo</span><strong id="saldo">R$ 0,00</strong></div>
         </div>
-        <div class="card table-card"><div class="section-title">Últimas movimentações</div><div id="movList"></div></div>
+        <div class="card table-card">
+          <div class="section-title">Últimas movimentações</div>
+          <div id="movList"></div>
+        </div>
       </section>
 
       <section id="clientes" class="panel">
-        <div class="topline"><div><h2>Clientes</h2><p class="muted">Cadastro e histórico por cliente</p></div><button id="novoClienteBtn">+ Cliente</button></div>
-        <input id="clienteBusca" class="search" placeholder="Buscar cliente ou WhatsApp">
+        <div class="topline">
+          <div><h2>Clientes</h2><p class="muted">Cadastro e histórico por cliente</p></div>
+          <button id="novoClienteBtn">+ Cliente</button>
+        </div>
+        <input id="clienteBusca" class="search" placeholder="Buscar por nome, CPF, e-mail ou WhatsApp">
         <div id="clientesList"></div>
       </section>
 
       <section id="atendimento" class="panel">
-        <div class="topline"><div><h2>Novo atendimento</h2><p class="muted">Registre o serviço e gere o recibo</p></div></div>
+        <div class="topline">
+          <div><h2>Novo atendimento</h2><p class="muted">Registre o serviço e gere o recibo</p></div>
+        </div>
         <div class="card form-card">
           <label>Cliente<select id="atCliente"></select></label>
-          <label>Serviço<input id="atServico" placeholder="Ex.: Corte + barba"></label>
+          <label>Serviço cadastrado<select id="atServicoSelect"></select></label>
+          <label>Serviço realizado<input id="atServico" placeholder="Nome do serviço"></label>
           <label>Profissional<input id="atProfissional" placeholder="Nome do barbeiro"></label>
           <label>Valor<input id="atValor" type="number" min="0" step="0.01" placeholder="0,00"></label>
           <label>Pagamento<select id="atPagamento"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Outro</option></select></label>
@@ -76,8 +107,63 @@
       </section>
 
       <section id="historico" class="panel">
-        <div class="topline"><div><h2>Histórico</h2><p class="muted">Atendimentos e recibos</p></div></div>
+        <div class="topline">
+          <div><h2>Histórico</h2><p class="muted">Atendimentos e recibos</p></div>
+        </div>
         <div id="histList"></div>
+      </section>
+
+      <section id="retaguarda" class="panel">
+        <div class="topline">
+          <div><h2>Retaguarda</h2><p class="muted">Configurações completas do estabelecimento</p></div>
+        </div>
+
+        <div class="settings-grid">
+          <div class="card settings-card">
+            <h3>Estabelecimento</h3>
+            <div class="logo-area">
+              <img id="settingsLogo" class="settings-logo hidden" alt="Logo">
+              <label class="upload-label">Selecionar logomarca<input id="logoInput" type="file" accept="image/*" hidden></label>
+              <span id="logoMsg" class="muted"></span>
+            </div>
+            <div class="grid2">
+              <input id="cfgNome" placeholder="Nome completo *">
+              <input id="cfgFantasia" placeholder="Nome fantasia">
+              <input id="cfgCnpj" placeholder="CNPJ">
+              <input id="cfgTelefone" placeholder="Telefone">
+              <input id="cfgWhatsapp" placeholder="WhatsApp">
+              <input id="cfgEmail" placeholder="E-mail">
+              <input id="cfgInstagram" placeholder="Instagram">
+              <input id="cfgEndereco" placeholder="Endereço">
+              <input id="cfgCidade" placeholder="Cidade">
+              <input id="cfgEstado" placeholder="Estado / UF">
+              <input id="cfgCep" placeholder="CEP">
+            </div>
+            <textarea id="cfgDescricao" placeholder="Descrição"></textarea>
+            <button id="saveEmpresaBtn">Salvar estabelecimento</button>
+            <div id="empresaMsg" class="msg"></div>
+          </div>
+
+          <div class="card settings-card">
+            <h3>Serviços</h3>
+            <div class="grid3">
+              <input id="svcNome" placeholder="Serviço *">
+              <input id="svcValor" type="number" min="0" step="0.01" placeholder="Valor *">
+              <input id="svcDuracao" type="number" min="1" placeholder="Minutos *">
+            </div>
+            <textarea id="svcDescricao" placeholder="Descrição do serviço"></textarea>
+            <button id="addServicoBtn">+ Adicionar serviço</button>
+            <div id="servicoMsg" class="msg"></div>
+            <div id="servicosList"></div>
+          </div>
+
+          <div class="card settings-card full-width">
+            <h3>Horários de atendimento</h3>
+            <div id="horariosList"></div>
+            <button id="saveHorariosBtn">Salvar horários</button>
+            <div id="horariosMsg" class="msg"></div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -88,6 +174,7 @@
       <div id="modalContent"></div>
     </div>
   </div>
+
   <script src="app.js"></script>
 </body>
 </html>
