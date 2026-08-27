@@ -10,12 +10,18 @@
     // Retira completamente a área de produtos da tela.
     removeByHeading("Produtos");
 
-    // Retira o campo de descrição do cadastro/listagem de serviços.
-    document.getElementById("svcDescricao")?.closest("textarea")?.remove();
+    // Retira o campo de descrição do cadastro de serviços.
+    document.getElementById("svcDescricao")?.remove();
 
     // Mantém apenas um campo para o nome do estabelecimento.
     document.getElementById("cfgFantasia")?.remove();
     document.getElementById("empresaFantasia")?.remove();
+
+    // Retira a descrição dos serviços já renderizados, preservando valor e duração.
+    document.querySelectorAll("#servicosList .service-row .muted").forEach(el => {
+      const match = el.textContent.match(/^(.*?\d+\s*min)/i);
+      if (match) el.textContent = match[1];
+    });
   }
 
   if (document.readyState === "loading") {
