@@ -1,35 +1,18 @@
-/* Ajustes visuais solicitados: não altera autenticação nem regras de negócio. */
+/* Limpeza visual isolada. Sem MutationObserver e sem alteração de autenticação. */
 (function () {
-  function removeByHeading(text) {
-    const headings = Array.from(document.querySelectorAll("h3"));
-    const heading = headings.find(h => h.textContent.trim().toLowerCase() === text.toLowerCase());
-    if (heading) heading.closest(".settings-card")?.remove();
-  }
-
-  function apply() {
-    // Retira completamente a área de produtos da tela.
-    removeByHeading("Produtos");
-
-    // Retira o campo de descrição do cadastro de serviços.
-    document.getElementById("svcDescricao")?.remove();
-
-    // Mantém apenas um campo para o nome do estabelecimento.
-    document.getElementById("cfgFantasia")?.remove();
-    document.getElementById("empresaFantasia")?.remove();
-
-    // Retira a descrição dos serviços já renderizados, preservando valor e duração.
-    document.querySelectorAll("#servicosList .service-row .muted").forEach(el => {
-      const match = el.textContent.match(/^(.*?\d+\s*min)/i);
-      if (match) el.textContent = match[1];
+  function stripServiceDescriptions() {
+    document.querySelectorAll('#servicosList .service-row .muted').forEach(el => {
+      const text = el.textContent || '';
+      const match = text.match(/^(.*?\d+\s*min)/i);
+      if (match && match[1] !== text) el.textContent = match[1];
     });
   }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => setTimeout(apply, 0));
-  } else {
-    setTimeout(apply, 0);
+  const original = window.renderServicos;
+  if (typeof original === 'function') {
+    window.renderServicos = function () {
+      const result = original.apply(this, arguments);
+      setTimeout(stripServiceDescriptions, 0);
+      return result;
+    };
   }
-
-  // O app pode reconstruir partes da tela após login/refresh; reaplica sem tocar no login.
-  new MutationObserver(() => apply()).observe(document.body, { childList: true, subtree: true });
 })();
