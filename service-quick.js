@@ -5,24 +5,33 @@
   document.head.appendChild(css);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
+  function getServicesFromScreen(){
+    return Array.from(document.querySelectorAll('#servicosList .service-row')).map(row=>{
+      const name=row.querySelector('b')?.textContent?.trim()||'';
+      const meta=row.querySelector('.muted')?.textContent||'';
+      const active=(row.querySelector('.pill')?.textContent||'').trim().toLowerCase()==='ativo';
+      const valueMatch=meta.match(/R\$\s*[\d.]+,\d{2}/);
+      const value=valueMatch?Number(valueMatch[0].replace(/[^\d,]/g,'').replace('.','').replace(',','.')):0;
+      return {name,value,active};
+    }).filter(s=>s.name&&s.active);
+  }
+
   function render(){
     const box=document.getElementById('serviceQuickButtons');
     if(!box) return;
-    const active=Array.isArray(window.servicos) ? window.servicos.filter(s=>s.ativo) : [];
+    const active=getServicesFromScreen();
     box.innerHTML=active.length
-      ? '<p class="quick-note muted">Serviços rápidos — toque para lançar no caixa:</p>'+active.map(s=>`<button type="button" class="quick-service" data-service-id="${esc(s.id)}"><span>${esc(s.nome)}</span><small>${money(s.valor)}</small></button>`).join('')
+      ? '<p class="quick-note muted">Serviços rápidos — toque para lançar no caixa:</p>'+active.map((s,i)=>`<button type="button" class="quick-service" data-index="${i}"><span>${esc(s.name)}</span><small>${money(s.value)}</small></button>`).join('')
       : '<div class="quick-empty muted">Cadastre serviços em Configurações para aparecerem aqui.</div>';
     box.querySelectorAll('.quick-service').forEach(btn=>btn.addEventListener('click',()=>{
-      const s=active.find(x=>String(x.id)===String(btn.dataset.serviceId));
+      const s=active[Number(btn.dataset.index)];
       if(!s || typeof window.openModal!=='function') return;
-      window.openModal(`<h2>${esc(s.nome)}</h2><p class="muted">Entrada no caixa</p><label>Valor<input id="mValor" type="number" min="0" step="0.01" value="${Number(s.valor)||0}"></label><label>Pagamento<select id="mForma"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Outro</option></select></label><input id="mDesc" value="${esc(s.nome)}" hidden><select id="mTipo" hidden><option value="entrada" selected>Entrada</option></select><input id="mCategoria" value="Atendimento" hidden><button id="quickSaveMovementBtn">Registrar no caixa</button><div id="modalMsg" class="msg"></div>`);
+      window.openModal(`<h2>${esc(s.name)}</h2><p class="muted">Entrada no caixa</p><label>Valor<input id="mValor" type="number" min="0" step="0.01" value="${s.value}"></label><label>Pagamento<select id="mForma"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Outro</option></select></label><input id="mDesc" value="${esc(s.name)}" hidden><select id="mTipo" hidden><option value="entrada" selected>Entrada</option></select><input id="mCategoria" value="Atendimento" hidden><button id="quickSaveMovementBtn">Registrar no caixa</button><div id="modalMsg" class="msg"></div>`);
       document.getElementById('quickSaveMovementBtn')?.addEventListener('click',()=>window.saveMovement?.());
     }));
   }
-  function waitForServices(){
-    if(document.getElementById('serviceQuickButtons') && Array.isArray(window.servicos)) render();
-    else setTimeout(waitForServices,150);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',waitForServices); else waitForServices();
+
   window.renderQuickServices=render;
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(render,50)); else setTimeout(render,50);
 })();
