@@ -33,5 +33,12 @@
   }
 
   window.renderQuickServices=render;
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(render,50)); else setTimeout(render,50);
+  function watchServices(){
+    const list=document.getElementById('servicosList');
+    if(!list) return;
+    render();
+    let timer;
+    new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(render,30);}).observe(list,{childList:true,subtree:true,characterData:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(watchServices,100)); else setTimeout(watchServices,100);
 })();
