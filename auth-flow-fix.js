@@ -49,12 +49,7 @@
     if (btn) btn.disabled = true;
     setMsg("Criando acesso...");
     try {
-      const { data, error } = await getClient().auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin + "/" }
-      });
-
+      const { data, error } = await getClient().auth.signUp({ email, password });
       if (error) return setMsg(error.message || "Não foi possível criar o acesso.");
       if (!data?.user) return setMsg("Não foi possível criar o acesso. Tente novamente.");
 
