@@ -16,9 +16,12 @@
   const header=document.querySelector('#appView header');if(!header||$('onlineBookingBtn'))return;
   const b=document.createElement('button');b.id='onlineBookingBtn';b.className='ghost';b.textContent='🔗 Agendamento online';b.style.marginRight='8px';
   const logout=$('logoutBtn');header.insertBefore(b,logout||null);
-  b.onclick=async()=>{if(String(empresa?.plano_acesso||'').toLowerCase()!=='pro'&&!(window.assinatura?.status==='ativa')){ $('planTrigger')?.click(); return; }
-   const slug=await ensureSlug();if(!slug)return alert('Não foi possível gerar o link agora.');const url=location.origin+'/agendar.html?estabelecimento='+encodeURIComponent(slug);
-   const ok=confirm('Link público de agendamento:\n\n'+url+'\n\nOK = abrir página\nCancelar = copiar link');if(ok)window.open(url,'_blank');else navigator.clipboard?.writeText(url);
+  b.onclick=async()=>{
+   const slug=await ensureSlug();
+   if(!slug)return alert('Não foi possível gerar o link agora.');
+   const url=location.origin+'/agendar.html?estabelecimento='+encodeURIComponent(slug);
+   const ok=confirm('Link público de agendamento:\n\n'+url+'\n\nOK = abrir página\nCancelar = copiar link');
+   if(ok)window.open(url,'_blank');else navigator.clipboard?.writeText(url);
   };
  }
  function start(){if(window.empresa?.id){add();ensureSlug()}}
