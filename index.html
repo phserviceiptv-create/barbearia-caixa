@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Barbearia Caixa</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barbearia Caixa</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="authView" class="center"><div class="card auth-card"><div class="brand brand-center"><span class="brand-mark">✂</span><span>Barbearia Caixa</span></div><div class="auth-copy"><h1>Seu caixa, clientes e recibos.</h1><p class="muted">Tudo da sua barbearia em um só lugar.</p></div><div id="authMsg" class="msg"></div><input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha"><button id="loginBtn">Entrar</button><button id="signupBtn" class="secondary">Criar acesso</button></div></div>
@@ -16,5 +20,18 @@
     </main>
   </div>
   <div id="modal" class="modal hidden"><div class="modal-box"><button id="closeModal" class="close">×</button><div id="modalContent"></div></div></div>
-  <script src="auth-compat.js?v=20260828-1"></script><script src="app.js?v=20260828-1"></script><script src="auth-flow-fix.js?v=20260828-1"></script><script src="health-fixes.js?v=20260828-1"></script><script src="receipt-pdf.js?v=20260828-1"></script><script src="ui-cleanup.js?v=20260828-1"></script><script src="service-quick.js?v=20260828-1"></script><script src="runtime-fixes.js?v=20260828-1"></script><script src="plan.js?v=20260828-1"></script><script src="access-gate.js?v=20260828-1"></script><script src="booking-link.js?v=20260828-1"></script><script src="setup-fix.js?v=20260828-1"></script>
-</body></html>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="auth-compat.js?v=20260828-2" defer></script>
+  <script src="app.js?v=20260828-2" defer></script>
+  <script src="auth-flow-fix.js?v=20260828-2" defer></script>
+  <script src="health-fixes.js?v=20260828-2" defer></script>
+  <script src="receipt-pdf.js?v=20260828-2" defer></script>
+  <script src="ui-cleanup.js?v=20260828-2" defer></script>
+  <script src="service-quick.js?v=20260828-2" defer></script>
+  <script src="runtime-fixes.js?v=20260828-2" defer></script>
+  <script src="plan.js?v=20260828-2" defer></script>
+  <script src="access-gate.js?v=20260828-2" defer></script>
+  <script src="booking-link.js?v=20260828-2" defer></script>
+  <script src="setup-fix.js?v=20260828-2" defer></script>
+</body>
+</html>
