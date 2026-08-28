@@ -1,6 +1,6 @@
 /* Controle de acesso Free x PRO.
-   FREE: somente Caixa/Fluxo de Caixa e serviços rápidos.
-   PRO: libera todas as demais áreas do sistema.
+   FREE: Caixa/Fluxo de Caixa + Agendamento online.
+   PRO: libera as demais áreas do sistema.
 */
 (function(){
   let pro=false;
@@ -85,14 +85,14 @@
   function apply(){
     addStyles();
     document.querySelectorAll('.tab').forEach(btn=>{
-      const isDashboard=btn.dataset.tab==='dashboard';
-      if(isPro()||isDashboard) unlockTab(btn); else lockTab(btn);
+      const isFreeArea=btn.dataset.tab==='dashboard' || btn.dataset.tab==='agenda';
+      if(isPro()||isFreeArea) unlockTab(btn); else lockTab(btn);
     });
 
     if(!isPro()){
       const app=$('appView');
       if(app){
-        document.querySelectorAll('.panel').forEach(p=>{ if(p.id!=='dashboard') p.classList.remove('active'); });
+        document.querySelectorAll('.panel').forEach(p=>{ if(p.id!=='dashboard' && p.id!=='agenda') p.classList.remove('active'); });
         $('dashboard')?.classList.add('active');
       }
     }
@@ -112,8 +112,8 @@
     document.addEventListener('click',e=>{
       if(isPro()) return;
       const tab=e.target.closest?.('.tab');
-      if(tab && tab.dataset.tab!=='dashboard') return;
-      const panel=e.target.closest?.('#historico,#clientes,#agenda,#configuracoes');
+      if(tab && (tab.dataset.tab!=='dashboard' && tab.dataset.tab!=='agenda')) return;
+      const panel=e.target.closest?.('#historico,#clientes,#configuracoes');
       if(panel){e.preventDefault();e.stopPropagation();toast();showUpgrade();}
     },true);
   }
