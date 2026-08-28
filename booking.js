@@ -1,0 +1,19 @@
+const SUPABASE_URL='https://zjeclsozvjymuzwyhvqj.supabase.co';
+const SUPABASE_KEY='sb_publishable_WyjaTHvDUwGPCwHaXcdApw_xlssm0TE';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const slug=new URLSearchParams(location.search).get('estabelecimento')||location.pathname.split('/').pop().replace(/\.html$/,'');
+let page=null, selectedTime=null;
+const $=id=>document.getElementById(id);
+const msg=(text,type='')=>{const e=$('msg');e.textContent=text;e.className='booking-msg show '+type};
+function localISO(){const d=new Date();const off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
+async function load(){
+ try{const r=await sb.rpc('get_public_booking_page',{p_slug:slug});if(r.error)throw r.error;page=r.data;$('nome').textContent=page.empresa.nome_fantasia||page.empresa.nome||'Agendamento Online';$('descricao').textContent=page.empresa.descricao||'Agende seu atendimento online.';if(page.empresa.logo_url){$('logo').src=page.empresa.logo_url;$('logo').style.display='inline-block'}
+ const opts=page.servicos||[];$('servico').innerHTML=opts.length?opts.map(s=>`<option value="${s.id}">${esc(s.nome)} — ${money(s.valor)}</option>`).join(''):'<option value="">Nenhum serviço disponível</option>';
+ const min=localISO();$('data').min=min;$('data').value=min;$('servico').onchange=loadSlots;$('data').onchange=loadSlots;$('confirmar').onclick=confirm; $('loading').style.display='none';$('content').style.display='block'; await loadSlots();
+ }catch(e){$('loading').textContent='Não foi possível carregar este agendamento.';console.error(e)}
+}
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+async function loadSlots(){selectedTime=null;$('slots').innerHTML='<span class="loading">Buscando horários...</span>';const date=$('data').value, service=$('servico').value;if(!date||!service)return;const r=await sb.rpc('get_public_booking_slots',{p_slug:slug,p_date:date,p_servico_id:service});if(r.error){$('slots').textContent='Não foi possível carregar os horários.';return}const slots=r.data||[];$('slots').innerHTML=slots.length?slots.map(t=>`<button class="slot" data-time="${t}">${t}</button>`).join(''):'<span class="loading">Nenhum horário disponível para esta data.</span>';document.querySelectorAll('.slot').forEach(b=>b.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedTime=b.dataset.time;msg('')})}
+async function confirm(){if(!$('servico').value||!$('data').value||!selectedTime)return msg('Selecione serviço, data e horário.','err');const nome=$('clienteNome').value.trim(),telefone=$('telefone').value.trim();if(nome.length<2||telefone.replace(/\D/g,'').length<8)return msg('Informe seu nome e um WhatsApp válido.','err');const b=$('confirmar');b.disabled=true;b.textContent='Confirmando...';msg('');try{const r=await sb.rpc('create_public_booking',{p_slug:slug,p_nome:nome,p_telefone:telefone,p_email:$('email').value.trim(),p_servico_id:$('servico').value,p_date:$('data').value,p_time:selectedTime,p_observacoes:$('obs').value.trim()});if(r.error)throw r.error;msg('Agendamento confirmado! Você já pode fechar esta página.','ok');b.textContent='Agendamento confirmado';await loadSlots()}catch(e){console.error(e);msg(e.message?.includes('HORARIO_INDISPONIVEL')?'Esse horário acabou de ser ocupado. Escolha outro.':'Não foi possível confirmar. Tente novamente.','err');b.disabled=false;b.textContent='Confirmar agendamento'}}
+load();
