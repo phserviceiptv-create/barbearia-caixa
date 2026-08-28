@@ -11,7 +11,8 @@ module.exports=async(req,res)=>{
  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');const key=process.env.ASAAS_API_KEY;if(!token)return res.status(401).json({error:'Sessão não encontrada.'});if(!key)return res.status(503).json({error:'Asaas ainda não configurado: falta ASAAS_API_KEY.'});
  try{
   const me=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:h(token)});if(!me.ok)return res.status(401).json({error:'Sessão inválida.'});const user=await body(me);const plan=PLANOS[req.body?.plan];if(!plan)return res.status(400).json({error:'Plano inválido.'});
-  const billingType=req.body?.billingType==='PIX'?'PIX':'UNDEFINED';
+  const requested=req.body?.billingType; if(!['PIX','CREDIT_CARD'].includes(requested))return res.status(400).json({error:'Forma de pagamento inválida. Escolha PIX ou cartão de crédito.'});
+  const billingType=requested;
   const pr=await fetch(`${SUPABASE_URL}/rest/v1/perfis?id=eq.${encodeURIComponent(user.id)}&select=empresa_id`,{headers:h(token)});const ps=await body(pr);const empresaId=ps?.[0]?.empresa_id;if(!empresaId)return res.status(400).json({error:'Cadastre sua barbearia antes de contratar o PRO.'});
   const er=await fetch(`${SUPABASE_URL}/rest/v1/empresas?id=eq.${encodeURIComponent(empresaId)}&select=nome,nome_fantasia,whatsapp,telefone,email,cnpj`,{headers:h(token)});const es=await body(er);const e=es?.[0]||{};
   const documento=String(e.cnpj||'').replace(/\D/g,'');
@@ -30,6 +31,6 @@ module.exports=async(req,res)=>{
     } else if(payment?.invoiceUrl||invoiceUrl) break;
     if(attempt<3)await sleep(700);
   }
-  return res.status(200).json({checkout_url:invoiceUrl, pix, pagamento:billingType, assinatura:ij?.[0]||null});
+  return res.status(200).json({checkout_url:invoiceUrl,pix,pagamento:billingType,assinatura:ij?.[0]||null});
  }catch(e){return res.status(500).json({error:e.message||'Erro interno.'});}
 };
