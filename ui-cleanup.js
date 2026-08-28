@@ -62,7 +62,6 @@
   };
   const money = v => Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   let selected = localStorage.getItem('bc_paid_plan') || 'mensal';
-  let empresaId = null;
   let currentSubscription = null;
   const sb = () => window.supabase.createClient('https://zjeclsozvjymuzwyhvqj.supabase.co','sb_publishable_WyjaTHvDUwGPCwHaXcdApw_xlssm0TE');
   function hideAll(){ ['authView','setupView','appView'].forEach(id=>document.getElementById(id)?.classList.add('hidden')); }
@@ -91,7 +90,6 @@
     }catch(e){setMsg(e.message);}
   }
   window.ensurePaidAccess = async function(empresa){
-    empresaId=empresa; mount();
     try{
       const client=sb();
       const {data:{session}}=await client.auth.getSession();
@@ -104,11 +102,22 @@
       }
       const active=currentSubscription && currentSubscription.status==='ativa' && (!currentSubscription.expira_em || new Date(currentSubscription.expira_em)>new Date());
       if(active){document.getElementById('paidView')?.remove();return true;}
-      showPaid();
+      mount();showPaid();
       setMsg(currentSubscription?.status==='pendente'?'Pagamento pendente. Conclua o pagamento e atualize esta página para confirmar.':'Selecione um plano para liberar o acesso.');
       return false;
-    }catch(e){showPaid();setMsg('Não foi possível verificar a assinatura agora.');return false;}
+    }catch(e){mount();showPaid();setMsg('Não foi possível verificar a assinatura agora.');return false;}
   };
+  const originalLoadProfile = window.loadProfile;
+  if(typeof originalLoadProfile==='function'){
+    window.loadProfile = async function(){
+      const result = await originalLoadProfile.apply(this, arguments);
+      if(window.PAID_MODE && window.user?.id && window.empresa?.id){
+        const allowed = await window.ensurePaidAccess(window.empresa.id);
+        if(!allowed) document.getElementById('appView')?.classList.add('hidden');
+      }
+      return result;
+    };
+  }
   window.addEventListener('pageshow',()=>{if(window.PAID_MODE) mount();});
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{mount();}); else mount();
 })();
