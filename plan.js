@@ -7,6 +7,7 @@
   };
   let assinatura = null;
   let polling = null;
+  let pixPolling = null;
   const money = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
   const $ = id => document.getElementById(id);
   function injectStyles(){
@@ -33,7 +34,7 @@
   }
   function isPro(){ return String(window.empresa?.plano_acesso||'').toLowerCase()==='pro' || assinatura?.status==='ativa'; }
   function updateTrigger(){ const b=$('planTrigger'); if(!b) return; const pro=isPro(); b.className='plan-trigger '+(pro?'pro':'free'); const label=b.querySelector('.plan-label'); if(label) label.textContent=pro?'Plano PRO':'Plano Gratuito'; }
-  function closePlan(){ $('planOverlay')?.remove(); }
+  function closePlan(){ if(pixPolling){clearInterval(pixPolling);pixPolling=null;} $('planOverlay')?.remove(); }
   function showPix(pix){
     const msg=$('planMsg'); if(!msg||!pix?.payload) return;
     const img=pix.encodedImage ? (String(pix.encodedImage).startsWith('data:')?pix.encodedImage:'data:image/png;base64,'+pix.encodedImage) : '';
@@ -41,22 +42,57 @@
     msg.innerHTML=`<strong>Pagamento via PIX</strong>${img?`<img class="pix-img" src="${img}" alt="QR Code PIX">`:''}<div style="margin-top:8px;font-weight:700">Escaneie o QR Code ou use o Pix Copia e Cola.</div><input id="pixPayload" class="pix-code" readonly value="${String(pix.payload).replace(/"/g,'&quot;')}"><button id="pixCopy" class="pix-copy" type="button">Copiar código PIX</button>${pix.expirationDate?`<div class="pix-exp">Validade: ${new Date(pix.expirationDate).toLocaleString('pt-BR')}</div>`:''}`;
     $('pixCopy').onclick=async()=>{try{await navigator.clipboard.writeText(pix.payload);$('pixCopy').textContent='Código copiado ✓';}catch{$('pixPayload').select();document.execCommand('copy');$('pixCopy').textContent='Código copiado ✓';}};
   }
+  async function pollPix(subscriptionId, assinaturaId){
+    if(!subscriptionId||!assinaturaId)return;
+    if(pixPolling)clearInterval(pixPolling);
+    let tries=0;
+    const check=async()=>{
+      tries++;
+      const msg=$('planMsg');
+      try{
+        const {data:{session}}=await sb.auth.getSession();
+        if(!session)throw new Error('Sua sessão expirou. Entre novamente.');
+        const r=await fetch('/api/subscription-pix',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({asaas_subscription_id:subscriptionId,assinatura_id:assinaturaId})});
+        const data=await r.json().catch(()=>({}));
+        if(!r.ok)throw new Error(data.error||'Não foi possível consultar o PIX.');
+        if(data.ready&&data.pix?.payload){clearInterval(pixPolling);pixPolling=null;showPix(data.pix);return;}
+        if(msg)msg.textContent=`Gerando seu QR Code PIX... ${tries}/15`;
+        if(tries>=15){clearInterval(pixPolling);pixPolling=null;if(msg){msg.className='plan-note warn';msg.textContent='O Asaas ainda está gerando a cobrança PIX. Clique em Atualizar status em alguns segundos.';}}
+      }catch(e){clearInterval(pixPolling);pixPolling=null;const msg=$('planMsg');if(msg){msg.className='plan-note';msg.textContent=e.message||'Não foi possível gerar o PIX.';}}
+    };
+    await check();
+    if(!pixPolling)pixPolling=setInterval(check,2000);
+  }
   function openPlan(){
     if($('planOverlay')) return; injectStyles(); const pro=isPro(); const current=assinatura?.plano ? PLANOS[assinatura.plano] : null; const status=assinatura?.status||'';
     const overlay=document.createElement('div'); overlay.id='planOverlay'; overlay.className='plan-overlay';
-    overlay.innerHTML=`<div class="plan-box" role="dialog" aria-modal="true"><div class="plan-head"><div><h2>${pro?'Seu plano PRO':'Escolha como usar o Barbearia Caixa'}</h2><p class="plan-sub">A versão gratuita continua disponível. O PRO fica dentro da mesma aplicação.</p></div><button class="plan-close" id="planClose" aria-label="Fechar">×</button></div><div class="plan-grid"><div class="plan-card"><h3>Gratuito</h3><div class="plan-price">R$ 0</div><ul><li>Caixa e movimentações</li><li>Agenda</li><li>Edição dos dados da barbearia</li></ul><button class="plan-secondary" id="planFreeBtn" type="button" disabled>Plano atual</button></div><div class="plan-card pro-card"><h3>PRO</h3><div class="plan-price">a partir de R$ 29,90</div><ul><li>Recursos avançados do sistema</li><li>Relatórios e gestão ampliada</li><li>Recibos e ferramentas profissionais</li><li>Atualizações e recursos PRO</li><li>Suporte prioritário</li></ul>${pro?'<button class="plan-secondary" type="button" disabled>PRO ativo</button>':`<label style="display:block;font-weight:700">Escolha a cobrança</label><select id="planSelect" class="plan-select"><option value="mensal">Mensal — ${money(29.90)}</option><option value="trimestral">Trimestral — ${money(79.90)}</option><option value="semestral">Semestral — ${money(149.90)}</option><option value="anual">Anual — ${money(249.90)}</option></select><label style="display:block;font-weight:700;margin-top:12px">Forma de pagamento</label><select id="paymentSelect" class="plan-select"><option value="PIX">PIX — QR Code e Copia e Cola</option><option value="UNDEFINED">Cartão de crédito / página Asaas</option></select><button id="planUpgradeBtn" class="plan-primary" type="button">Assinar PRO</button>`}</div></div>${status && !pro?`<div class="plan-status warn">Assinatura ${status}. Se você já pagou, clique em <b>Atualizar status</b>.</div>`:''}${pro?`<div class="plan-status ok">Seu acesso PRO está ativo${current?' · '+current.label:''}.</div>`:''}<div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end"><button class="plan-secondary" id="planRefresh" type="button">Atualizar status</button></div><div id="planMsg" class="plan-note">O pagamento é processado pelo Asaas. Escolha PIX para receber o QR Code diretamente aqui.</div></div>`;
+    overlay.innerHTML=`<div class="plan-box" role="dialog" aria-modal="true"><div class="plan-head"><div><h2>${pro?'Seu plano PRO':'Escolha como usar o Barbearia Caixa'}</h2><p class="plan-sub">A versão gratuita continua disponível. O PRO fica dentro da mesma aplicação.</p></div><button class="plan-close" id="planClose" aria-label="Fechar">×</button></div><div class="plan-grid"><div class="plan-card"><h3>Gratuito</h3><div class="plan-price">R$ 0</div><ul><li>Caixa e movimentações</li><li>Agenda</li><li>Edição dos dados da barbearia</li></ul><button class="plan-secondary" id="planFreeBtn" type="button" disabled>Plano atual</button></div><div class="plan-card pro-card"><h3>PRO</h3><div class="plan-price">a partir de R$ 29,90</div><ul><li>Recursos avançados do sistema</li><li>Relatórios e gestão ampliada</li><li>Recibos e ferramentas profissionais</li><li>Atualizações e recursos PRO</li><li>Suporte prioritário</li></ul>${pro?'<button class="plan-secondary" type="button" disabled>PRO ativo</button>':`<label style="display:block;font-weight:700">Escolha a cobrança</label><select id="planSelect" class="plan-select"><option value="mensal">Mensal — ${money(29.90)}</option><option value="trimestral">Trimestral — ${money(79.90)}</option><option value="semestral">Semestral — ${money(149.90)}</option><option value="anual">Anual — ${money(249.90)}</option></select><label style="display:block;font-weight:700;margin-top:12px">Forma de pagamento</label><select id="paymentSelect" class="plan-select"><option value="PIX">PIX — QR Code e Copia e Cola</option><option value="CREDIT_CARD">Cartão de crédito — página segura Asaas</option></select><button id="planUpgradeBtn" class="plan-primary" type="button">Assinar PRO</button>`}</div></div>${status && !pro?`<div class="plan-status warn">Assinatura ${status}. Se você já pagou, clique em <b>Atualizar status</b>.</div>`:''}${pro?`<div class="plan-status ok">Seu acesso PRO está ativo${current?' · '+current.label:''}.</div>`:''}<div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end"><button class="plan-secondary" id="planRefresh" type="button">Atualizar status</button></div><div id="planMsg" class="plan-note">O pagamento é processado pelo Asaas. Escolha PIX para receber o QR Code diretamente aqui.</div></div>`;
     document.body.appendChild(overlay); $('planClose').onclick=closePlan; overlay.addEventListener('click',e=>{if(e.target===overlay)closePlan();}); $('planRefresh').onclick=async()=>{ await refreshStatus(true); }; $('planUpgradeBtn')?.addEventListener('click',startUpgrade);
   }
   async function startUpgrade(){
     const btn=$('planUpgradeBtn'), msg=$('planMsg'), plan=$('planSelect')?.value, billingType=$('paymentSelect')?.value||'PIX'; if(!btn||!plan) return;
-    try{ btn.disabled=true; btn.textContent=billingType==='PIX'?'Gerando PIX...':'Preparando pagamento...'; msg.className='plan-note'; msg.textContent=billingType==='PIX'?'Gerando seu QR Code PIX seguro...':'Conectando ao pagamento seguro...'; const {data:{session}}=await sb.auth.getSession(); if(!session) throw new Error('Sua sessão expirou. Entre novamente.');
-      const r=await fetch('/api/create-subscription',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({plan,billingType})}); const data=await r.json().catch(()=>({})); if(!r.ok) throw new Error(data.error||'Não foi possível iniciar a assinatura.');
+    try{
+      btn.disabled=true;
+      btn.textContent=billingType==='PIX'?'Gerando PIX...':'Preparando pagamento...';
+      msg.className='plan-note';
+      msg.textContent=billingType==='PIX'?'Criando sua cobrança PIX...':'Conectando ao pagamento seguro...';
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session) throw new Error('Sua sessão expirou. Entre novamente.');
+      const r=await fetch('/api/create-subscription',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({plan,billingType})});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(data.error||'Não foi possível iniciar a assinatura.');
       assinatura=data.assinatura||assinatura;
-      if(billingType==='PIX'&&data.pix?.payload){ showPix(data.pix); }
-      else if(data.checkout_url){ msg.className='plan-note'; msg.textContent='Abrindo a página segura de pagamento...'; window.open(data.checkout_url,'_blank'); }
-      else msg.textContent=billingType==='PIX'?'A cobrança PIX foi criada. Clique em Atualizar status em alguns segundos.':'Assinatura criada. Aguarde a confirmação do pagamento.';
+      if(billingType==='PIX'){
+        msg.textContent='Cobrança criada. Aguardando o QR Code PIX...';
+        if(data.pix?.payload)showPix(data.pix); else await pollPix(data.asaas_subscription_id,data.assinatura?.id);
+      }else if(data.checkout_url){
+        msg.className='plan-note'; msg.textContent='Abrindo a página segura de pagamento...'; window.open(data.checkout_url,'_blank');
+      }else{
+        msg.textContent='Assinatura criada. Aguarde a confirmação do pagamento.';
+      }
       setTimeout(()=>loadSubscription(),1200);
-    }catch(e){ msg.className='plan-note'; msg.textContent=e.message||'Erro ao iniciar assinatura.'; } finally{btn.disabled=false;btn.textContent='Assinar PRO';}
+    }catch(e){ msg.className='plan-note'; msg.textContent=e.message||'Erro ao iniciar assinatura.'; }
+    finally{btn.disabled=false;btn.textContent='Assinar PRO';}
   }
   async function refreshStatus(showMsg){
     const msg=$('planMsg'); try{ if(showMsg&&msg){msg.className='plan-note';msg.textContent='Consultando status do pagamento...';} await loadSubscription();
