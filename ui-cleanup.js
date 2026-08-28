@@ -1,37 +1,19 @@
 /* Ajustes de interface solicitados. Não altera autenticação nem Supabase Auth. */
 (function () {
   function cleanServices() {
-    const dur = document.getElementById('svcDuracao');
-    if (dur) dur.style.display = 'none';
+    const dur = document.getElementById('svcDuracao'); if (dur) dur.style.display = 'none';
     document.getElementById('svcDescricao')?.remove();
-    document.querySelectorAll('#servicosList .service-row').forEach(row => {
-      const muted = row.querySelector('.muted');
-      if (muted) muted.textContent = muted.textContent.split('·')[0].trim();
-    });
+    document.querySelectorAll('#servicosList .service-row').forEach(row => { const muted=row.querySelector('.muted'); if(muted) muted.textContent=muted.textContent.split('·')[0].trim(); });
   }
   function cleanAgenda() {
-    const panel = document.getElementById('agenda');
-    if (!panel) return;
-    panel.querySelector('.agenda-toolbar')?.remove();
-    document.getElementById('agendaList')?.remove();
-    panel.querySelector('.agenda-atendimento')?.remove();
-    const title = panel.querySelector('h2'); if (title) title.textContent = 'Agendar contato';
-    const subtitle = panel.querySelector('.topline .muted'); if (subtitle) subtitle.textContent = 'Salve o contato do cliente para atendimento';
-    const btn = document.getElementById('novoAgendamentoBtn'); if (btn) btn.textContent = '+ Agendar contato';
+    const panel=document.getElementById('agenda'); if(!panel)return;
+    panel.querySelector('.agenda-toolbar')?.remove(); document.getElementById('agendaList')?.remove(); panel.querySelector('.agenda-atendimento')?.remove();
+    const title=panel.querySelector('h2'); if(title)title.textContent='Agendar contato'; const subtitle=panel.querySelector('.topline .muted'); if(subtitle)subtitle.textContent='Salve o contato do cliente para atendimento';
+    const btn=document.getElementById('novoAgendamentoBtn'); if(btn)btn.textContent='+ Agendar contato';
   }
-  window.openAppointmentModal = function () {
-    if (typeof window.openClientModal !== 'function') return;
-    window.openClientModal(null);
-    setTimeout(() => {
-      const modalTitle = document.querySelector('#modalContent h2'); if (modalTitle) modalTitle.textContent = 'Agendar contato';
-      ['mEmail','mCpf','mNascimento','mEndereco','mObs'].forEach(id => document.getElementById(id)?.remove());
-      const save = document.getElementById('saveClientModal'); if (save) save.textContent = 'Salvar contato';
-    }, 0);
-  };
-  function apply(){cleanServices();cleanAgenda();}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(apply,50));else setTimeout(apply,50);
-  const originalRender=window.renderServicos;
-  if(typeof originalRender==='function')window.renderServicos=function(){const r=originalRender.apply(this,arguments);setTimeout(cleanServices,0);return r;};
+  window.openAppointmentModal=function(){if(typeof window.openClientModal!=='function')return;window.openClientModal(null);setTimeout(()=>{const t=document.querySelector('#modalContent h2');if(t)t.textContent='Agendar contato';['mEmail','mCpf','mNascimento','mEndereco','mObs'].forEach(id=>document.getElementById(id)?.remove());const s=document.getElementById('saveClientModal');if(s)s.textContent='Salvar contato';},0);};
+  const apply=()=>{cleanServices();cleanAgenda();}; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(apply,50));else setTimeout(apply,50);
+  const originalRender=window.renderServicos;if(typeof originalRender==='function')window.renderServicos=function(){const r=originalRender.apply(this,arguments);setTimeout(cleanServices,0);return r;};
 })();
 
 /* Modo PRO: ?modo=pago ativa a área comercial sem alterar a versão grátis. */
@@ -39,39 +21,14 @@
   if(new URLSearchParams(location.search).get('modo')!=='pago')return;
   window.PAID_MODE=true;
   const PLANS={mensal:{label:'Mensal',price:29.90,months:1},trimestral:{label:'Trimestral',price:79.90,months:3},semestral:{label:'Semestral',price:149.90,months:6},anual:{label:'Anual',price:249.90,months:12}};
-  const money=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  let selected=localStorage.getItem('bc_paid_plan')||'mensal';
+  const money=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); let selected=localStorage.getItem('bc_paid_plan')||'mensal';
   const sb=()=>window.supabase.createClient('https://zjeclsozvjymuzwyhvqj.supabase.co','sb_publishable_WyjaTHvDUwGPCwHaXcdApw_xlssm0TE');
-  const hideAll=()=>['authView','setupView','appView'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
-  const showAuth=()=>{hideAll();document.getElementById('authView')?.classList.remove('hidden');};
-  function mount(){
-    if(document.getElementById('paidView'))return;
-    const el=document.createElement('div');el.id='paidView';el.className='center';
-    el.innerHTML=`<div class="card auth-card wide-card paid-card"><div class="brand brand-center"><span class="brand-mark">✂</span><span>Barbearia Caixa PRO</span></div><h1>Escolha seu plano</h1><p class="muted">Acesso completo ao aplicativo. O acesso é liberado após a confirmação do pagamento.</p><div class="paid-plans">${Object.entries(PLANS).map(([k,p])=>`<button class="paid-plan ${k===selected?'selected':''}" data-plan="${k}"><b>${p.label}</b><strong>${money(p.price)}</strong><span>${k==='mensal'?'cobrança mensal':`a cada ${p.months} meses`}</span></button>`).join('')}</div><div class="paid-actions"><button id="paidContinue">Continuar para pagamento</button><button id="paidBack" class="secondary">Usar versão grátis</button></div><div id="paidMsg" class="msg"></div></div>`;
-    document.body.appendChild(el);
-    el.querySelectorAll('.paid-plan').forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.plan;localStorage.setItem('bc_paid_plan',selected);el.querySelectorAll('.paid-plan').forEach(x=>x.classList.toggle('selected',x===b));}));
-    document.getElementById('paidContinue').addEventListener('click',startPayment);
-    document.getElementById('paidBack').addEventListener('click',()=>location.href=location.pathname);
-  }
-  const setMsg=t=>{const m=document.getElementById('paidMsg');if(m)m.textContent=t||'';};
-  const showPaid=()=>{hideAll();document.getElementById('paidView')?.classList.remove('hidden');};
-  async function startPayment(){
-    const {data:{session}}=await sb().auth.getSession();
-    if(!session){showAuth();setMsg('Entre ou crie seu acesso para continuar.');return;}
-    setMsg('Criando pagamento...');
-    try{const r=await fetch('/api/create-subscription',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({plan:selected})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Não foi possível iniciar o pagamento.');if(j.checkout_url){location.href=j.checkout_url;return;}throw new Error('Mercado Pago não retornou o link de pagamento.');}catch(e){setMsg(e.message);}
-  }
-  window.ensurePaidAccess=async function(empresaId){
-    try{
-      const client=sb();const {data:{session}}=await client.auth.getSession();if(!session){showAuth();return false;}
-      const {data:subs}=await client.from('assinaturas').select('*').eq('empresa_id',empresaId).order('created_at',{ascending:false}).limit(1);let sub=subs?.[0]||null;
-      if(sub?.mp_preapproval_id){try{await fetch('/api/check-subscription',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({assinatura_id:sub.id,mp_preapproval_id:sub.mp_preapproval_id})});}catch(_e){}const {data:again}=await client.from('assinaturas').select('*').eq('id',sub.id).maybeSingle();sub=again||sub;}
-      const active=sub&&sub.status==='ativa'&&(!sub.expira_em||new Date(sub.expira_em)>new Date());
-      if(active){document.getElementById('paidView')?.remove();return true;}
-      mount();showPaid();setMsg(sub?.status==='pendente'?'Pagamento pendente. Conclua o pagamento e atualize esta página para confirmar.':'Selecione um plano para liberar o acesso.');return false;
-    }catch(e){mount();showPaid();setMsg('Não foi possível verificar a assinatura agora.');return false;}
-  };
-  const previousLoadProfile=window.loadProfile;
-  if(typeof previousLoadProfile==='function')window.loadProfile=async function(){const result=await previousLoadProfile.apply(this,arguments);try{const client=sb();const {data:{session}}=await client.auth.getSession();if(!session)return result;const {data:p}=await client.from('perfis').select('empresa_id').eq('id',session.user.id).maybeSingle();if(p?.empresa_id){const allowed=await window.ensurePaidAccess(p.empresa_id);if(!allowed)document.getElementById('appView')?.classList.add('hidden');}}catch(_e){}return result;};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+  const hideAll=()=>['authView','setupView','appView'].forEach(id=>document.getElementById(id)?.classList.add('hidden')); const showAuth=()=>{hideAll();document.getElementById('authView')?.classList.remove('hidden');};
+  function styles(){if(document.getElementById('paidStyles'))return;const s=document.createElement('style');s.id='paidStyles';s.textContent='.paid-card{max-width:820px}.paid-plans{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.paid-plan{display:flex;flex-direction:column;gap:6px;min-height:125px;justify-content:center;align-items:center;border:2px solid #ddd;border-radius:14px;background:#fff;padding:14px;cursor:pointer}.paid-plan strong{font-size:22px}.paid-plan span{font-size:12px;color:#777}.paid-plan.selected{border-color:#111;box-shadow:0 0 0 2px #111 inset}.paid-actions{display:flex;gap:10px;justify-content:center}.paid-actions button{min-width:220px}@media(max-width:700px){.paid-plans{grid-template-columns:1fr 1fr}.paid-actions{flex-direction:column}.paid-actions button{width:100%}}';document.head.appendChild(s);}
+  function mount(){if(document.getElementById('paidView'))return;styles();const el=document.createElement('div');el.id='paidView';el.className='center';el.innerHTML=`<div class="card auth-card wide-card paid-card"><div class="brand brand-center"><span class="brand-mark">✂</span><span>Barbearia Caixa PRO</span></div><h1>Escolha seu plano</h1><p class="muted">Acesso completo ao aplicativo. O acesso é liberado após a confirmação do pagamento.</p><div class="paid-plans">${Object.entries(PLANS).map(([k,p])=>`<button class="paid-plan ${k===selected?'selected':''}" data-plan="${k}"><b>${p.label}</b><strong>${money(p.price)}</strong><span>${k==='mensal'?'cobrança mensal':`a cada ${p.months} meses`}</span></button>`).join('')}</div><div class="paid-actions"><button id="paidContinue">Continuar para pagamento</button><button id="paidBack" class="secondary">Usar versão grátis</button></div><div id="paidMsg" class="msg"></div></div>`;document.body.appendChild(el);el.querySelectorAll('.paid-plan').forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.plan;localStorage.setItem('bc_paid_plan',selected);el.querySelectorAll('.paid-plan').forEach(x=>x.classList.toggle('selected',x===b));}));document.getElementById('paidContinue').addEventListener('click',startPayment);document.getElementById('paidBack').addEventListener('click',()=>location.href=location.pathname);}
+  const setMsg=t=>{const m=document.getElementById('paidMsg');if(m)m.textContent=t||'';};const showPaid=()=>{hideAll();document.getElementById('paidView')?.classList.remove('hidden');};
+  async function startPayment(){const {data:{session}}=await sb().auth.getSession();if(!session){showAuth();return;}setMsg('Criando pagamento...');try{const r=await fetch('/api/create-subscription',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({plan:selected})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Não foi possível iniciar o pagamento.');if(j.checkout_url){location.href=j.checkout_url;return;}throw new Error('Mercado Pago não retornou o link de pagamento.');}catch(e){setMsg(e.message);}}
+  window.ensurePaidAccess=async function(empresaId){try{const client=sb();const {data:{session}}=await client.auth.getSession();if(!session){showAuth();return false;}const {data:subs}=await client.from('assinaturas').select('*').eq('empresa_id',empresaId).order('created_at',{ascending:false}).limit(1);let sub=subs?.[0]||null;if(sub?.mp_preapproval_id){try{await fetch('/api/check-subscription',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({assinatura_id:sub.id,mp_preapproval_id:sub.mp_preapproval_id})});}catch(_e){}const {data:again}=await client.from('assinaturas').select('*').eq('id',sub.id).maybeSingle();sub=again||sub;}const active=sub&&sub.status==='ativa'&&(!sub.expira_em||new Date(sub.expira_em)>new Date());if(active){document.getElementById('paidView')?.remove();return true;}mount();showPaid();setMsg(sub?.status==='pendente'?'Pagamento pendente. Conclua o pagamento e atualize esta página para confirmar.':'Selecione um plano para liberar o acesso.');return false;}catch(e){mount();showPaid();setMsg('Não foi possível verificar a assinatura agora.');return false;}};
+  const previousLoadProfile=window.loadProfile;if(typeof previousLoadProfile==='function')window.loadProfile=async function(){const result=await previousLoadProfile.apply(this,arguments);try{const client=sb();const {data:{session}}=await client.auth.getSession();if(!session)return result;const {data:p}=await client.from('perfis').select('empresa_id').eq('id',session.user.id).maybeSingle();if(p?.empresa_id){const allowed=await window.ensurePaidAccess(p.empresa_id);if(!allowed)document.getElementById('appView')?.classList.add('hidden');}}catch(_e){}return result;};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',async()=>{mount();const {data:{session}}=await sb().auth.getSession();if(!session)showPaid();});else{mount();sb().auth.getSession().then(({data:{session}})=>{if(!session)showPaid();});}
 })();
